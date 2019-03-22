@@ -170,5 +170,5 @@ class MinesweeperGame():
             pass
 
 def main(mainscr):
-    MinesweeperGame(25,25,50, mainscr)
+    MinesweeperGame(20, 20, 60, mainscr)
 wrapper(main)

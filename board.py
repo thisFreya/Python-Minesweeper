@@ -89,25 +89,25 @@ class Board():
         assert(length >= 1), ""
         assert(width >= 3), ""
         try:
-            for i in range(length):
+            for i in range(width):
                 col = []
-                for ii in range(width):
+                for ii in range(length):
                     col.append(0)
                 board.append(col.copy())
                 self.boardDiscovered.append(col.copy())
             self.boardVals = self.constructBoard(board, mines)
         except assertionError:
-            for i in range(length):
+            for i in range(3):
                 col = []
-                for ii in range(width):
+                for ii in range(1):
                     col.append(0)
                 board.append(col.copy())
                 self.boardDiscovered.append(col.copy())
             self.boardVals = board
         except TypeError:
-            for i in range(length):
+            for i in range(3):
                 col = []
-                for ii in range(width):
+                for ii in range(1):
                     col.append(0)
                 board.append(col.copy())
                 self.boardDiscovered.append(col.copy())
@@ -163,8 +163,11 @@ class Board():
     """
     Marks the given square at (x,y) as discovered.
     If (x,y) has no adjacent mines then other adjacent
-    squares are discovered, and by extension the entirety
-    of empty square "groups" will be discovered.
+    squares are discovered, this is performed repeatedly
+    until all nearby squares are discovered. In regular
+    games of minesweeper, this is likely to be all
+    relevant squares, however in large, empty boards,
+    some squares will be missed to prevent stack overflows.
 
     :param x: 0 <= x < len(self.boardVals)
     :param y: 0 <= y < len(self.boardVals)
@@ -173,25 +176,72 @@ class Board():
     """
     def discoverSquare(self, x, y):
         try:
+            depth = 0
             if(x >= 0 and x < len(self.boardVals) and
                     y >= 0 and y < len(self.boardVals[0])):
                 if(self.boardDiscovered[x][y] < 0):
                     return 0
+                if(self.boardDiscovered[x][y] == 1):
+                    return self.boardVals[x][y]
                 self.boardDiscovered[x][y] = 1
                 if(self.boardVals[x][y] == 0):
                     for newX in range(x-1,x+2):
                         for newY in range(y-1, y+2):
-                            if(newX >= 0 and
-                                    newY >= 0 and
-                                    newX < len(self.boardVals) and
-                                    newY < len(self.boardVals[0])):
+                            if(newX >= 0 and newY >= 0 and
+                                    newX < len(self.boardDiscovered) and
+                                    newY < len(self.boardDiscovered[0])):
                                 if(self.boardDiscovered[newX][newY] == 0):
-                                    self.discoverSquare(newX,newY)
+                                    try:
+                                        if(self.discoverSquareRec(newX,newY, depth + 1) is None):
+                                            self.boardDiscovered[newX][newY] = 1
+                                    except RecursionError:
+                                        return self.boardVals[x][y]
                 return self.boardVals[x][y]
             else:
                 return None
         except TypeError:
             return None
+
+    """
+    Identical to Board.discoverSquare, with the once exception
+    that this includes an additional parameter to help with recursive
+    calls.
+
+    :param x: 0 <= x < len(self.boardVals)
+    :param y: 0 <= y < len(self.boardVals)
+    :param depth: The depth of this call in the recursion chain.
+    :returns: The value of the square (x,y) that was
+                discovered, None if the spec was broken.
+    """
+    def discoverSquareRec(self, x, y, depth):
+        try:
+            if(x >= 0 and x < len(self.boardVals) and
+                    y >= 0 and y < len(self.boardVals[0])):
+                if(self.boardDiscovered[x][y] < 0):
+                    return 0
+                if(self.boardDiscovered[x][y] == 1):
+                    return self.boardVals[x][y]
+                self.boardDiscovered[x][y] = 1
+                if(self.boardVals[x][y] == 0):
+                    for newX in range(x-1,x+2):
+                        for newY in range(y-1, y+2):
+                            if(newX >= 0 and newY >= 0 and
+                                    newX < len(self.boardDiscovered) and
+                                    newY < len(self.boardDiscovered[0])):
+                                if(self.boardDiscovered[newX][newY] == 0):
+                                    if(self.discoverSquareRec(newX,newY, depth+1) is None):
+                                        self.boardDiscovered[newX][newY] = 1
+                return self.boardVals[x][y]
+            else:
+                return None
+        except TypeError:
+            return None
+        except RecursionError:
+            if(depth < 800):
+                return self.boardVals[x][y]
+            else:
+                raise RecursionError
+
     """
     Either flags the given square at (x,y), or
     if a flag is already present, returns it to
